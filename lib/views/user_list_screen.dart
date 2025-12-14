@@ -77,9 +77,7 @@ class _UserListScreenState extends State<UserListScreen> {
               builder: (context, viewModel, child) {
                 // Loading State
                 if (viewModel.isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 // Error State
@@ -88,7 +86,11 @@ class _UserListScreenState extends State<UserListScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'Error: ${viewModel.errorMessage}',
@@ -108,12 +110,12 @@ class _UserListScreenState extends State<UserListScreen> {
 
                 // Success State - aber keine Daten
                 if (!viewModel.hasData) {
-                  return const Center(
-                    child: Text('No users found'),
-                  );
+                  return const Center(child: Text('No users found'));
                 }
 
                 // Success State mit Daten
+                // Ternärer Operator: bedingung ? wert_wenn_true : wert_wenn_false
+                // Wenn Suchfeld leer: alle User, sonst: gefilterte User
                 final users = _searchQuery.isEmpty
                     ? viewModel.users
                     : viewModel.searchUsers(_searchQuery);
@@ -155,9 +157,7 @@ class _UserListItem extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
-        leading: CircleAvatar(
-          child: Text(user.name[0].toUpperCase()),
-        ),
+        leading: CircleAvatar(child: Text(user.name[0].toUpperCase())),
         title: Text(user.name),
         subtitle: Text(user.email),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
