@@ -31,6 +31,8 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  /// Überschreibt die abstrakte build-Methode von StatelessWidget
+  /// MUSS implementiert werden, da StatelessWidget.build abstrakt ist
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -38,17 +40,14 @@ class MyApp extends StatelessWidget {
         /// 1. Service Layer (unterste Ebene)
         /// Provider erstellt eine einzelne Instanz für die gesamte App
         Provider<ApiService>(
-          create: (_) => ApiServiceImpl(
-            client: http.Client(),
-          ),
+          create: (_) => ApiServiceImpl(client: http.Client()),
         ),
 
         /// 2. Repository Layer
         /// ProxyProvider nutzt ApiService um Repository zu erstellen
         ProxyProvider<ApiService, UserRepository>(
-          update: (_, apiService, _) => UserRepositoryImpl(
-            apiService: apiService,
-          ),
+          update: (_, apiService, _) =>
+              UserRepositoryImpl(apiService: apiService),
         ),
 
         /// 2b. Repository Layer - Photos
@@ -61,9 +60,8 @@ class MyApp extends StatelessWidget {
         /// ChangeNotifierProxyProvider für reaktive ViewModels
         /// Erstellt UserListViewModel mit UserRepository
         ChangeNotifierProxyProvider<UserRepository, UserListViewModel>(
-          create: (context) => UserListViewModel(
-            repository: context.read<UserRepository>(),
-          ),
+          create: (context) =>
+              UserListViewModel(repository: context.read<UserRepository>()),
           update: (_, repository, viewModel) =>
               viewModel ?? UserListViewModel(repository: repository),
         ),
@@ -71,9 +69,8 @@ class MyApp extends StatelessWidget {
         /// 4. ViewModel Layer - User Detail
         /// ChangeNotifierProxyProvider da UserDetailViewModel ChangeNotifier erweitert
         ChangeNotifierProxyProvider<UserRepository, UserDetailViewModel>(
-          create: (context) => UserDetailViewModel(
-            repository: context.read<UserRepository>(),
-          ),
+          create: (context) =>
+              UserDetailViewModel(repository: context.read<UserRepository>()),
           update: (_, repository, viewModel) =>
               viewModel ?? UserDetailViewModel(repository: repository),
         ),
@@ -81,9 +78,8 @@ class MyApp extends StatelessWidget {
         /// 5. ViewModel Layer - Photo List
         /// ViewModel für große Listen mit LAZY DATA LOADING
         ChangeNotifierProxyProvider<PhotoRepository, PhotoListViewModel>(
-          create: (context) => PhotoListViewModel(
-            context.read<PhotoRepository>(),
-          ),
+          create: (context) =>
+              PhotoListViewModel(context.read<PhotoRepository>()),
           update: (_, repository, viewModel) =>
               viewModel ?? PhotoListViewModel(repository),
         ),
@@ -92,9 +88,7 @@ class MyApp extends StatelessWidget {
         title: 'Flutter Concepts Learning',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple,
-          ),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
         home: const MainTabScreen(),
@@ -140,10 +134,7 @@ class MainTabScreen extends StatelessWidget {
             ),
             const Expanded(
               child: TabBarView(
-                children: [
-                  UserListScreen(),
-                  PhotoListScreen(),
-                ],
+                children: [UserListScreen(), PhotoListScreen()],
               ),
             ),
           ],
