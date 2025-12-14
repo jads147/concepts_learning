@@ -17,6 +17,34 @@ import 'user_detail_screen.dart';
 /// - Baut nur den Widget-Teil neu, der sich ändert
 /// - context.read() für einmalige Zugriffe (z.B. Methoden aufrufen)
 class UserListScreen extends StatefulWidget {
+  // ═══════════════════════════════════════════════════════════════════════
+  // Was macht 'const'?
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // const = Compile-Zeit-Konstante (wird beim Kompilieren erstellt)
+  //
+  // Vorteile:
+  // ✓ Performance: Widget wird nur EINMAL im Speicher erstellt
+  // ✓ Wiederverwendung: Flutter nutzt dieselbe Instanz mehrfach
+  // ✓ Effizientes Rebuilding: const Widgets werden NICHT neu gebaut
+  //
+  // Beispiel:
+  // const Text('Hello')  → wird einmal erstellt, immer wiederverwendet
+  // Text('Hello')        → wird bei jedem Build neu erstellt
+  //
+  // const vs final:
+  // • const: Wert muss zur KOMPILIERZEIT bekannt sein
+  //   const x = 42;                    ✓ OK
+  //   const y = DateTime.now();        x Fehler (erst zur Laufzeit bekannt)
+  //
+  // • final: Wert kann zur LAUFZEIT berechnet werden
+  //   final z = DateTime.now();        ✓ OK
+  //   z = DateTime.now();              x Fehler (kann nicht neu zugewiesen werden)
+  //
+  // Faustregel:
+  // • Nutze const wo immer möglich (bessere Performance)
+  // • Nutze final wenn der Wert erst zur Laufzeit bekannt ist
+  //
   const UserListScreen({super.key});
 
   @override
@@ -30,7 +58,21 @@ class _UserListScreenState extends State<UserListScreen> {
   @override
   void initState() {
     super.initState();
-    // Daten beim ersten Laden abrufen
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Warum addPostFrameCallback statt direktem context.read()?
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Problem: In initState() ist der BuildContext noch nicht vollständig
+    // initialisiert. Der Widget-Baum wird erst gebaut, NACHDEM initState()
+    // durchgelaufen ist.
+    //
+    // Lösung: addPostFrameCallback wartet, bis der erste Frame komplett
+    // gerendert wurde. Dann ist garantiert:
+    // ✓ Der Widget-Baum ist aufgebaut
+    // ✓ Der BuildContext ist vollständig initialisiert
+    // ✓ Provider sind verfügbar
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UserListViewModel>().loadUsers();
     });
@@ -71,6 +113,32 @@ class _UserListScreenState extends State<UserListScreen> {
             ),
           ),
 
+          // ═══════════════════════════════════════════════════════════════════════
+          // Consumer vs context.read vs context.watch
+          // ═══════════════════════════════════════════════════════════════════
+          //
+          //    Consumer<T>:
+          //    - Baut sich NEU, wenn notifyListeners() aufgerufen wird
+          //    - Nutze für UI-Teile, die auf State-Änderungen reagieren
+          //    - Hier: User-Liste muss sich neu bauen bei jedem Load/Error
+          //
+          //    context.read<T>():
+          //    - Einmaliger Zugriff OHNE automatischen Rebuild
+          //    - Nutze für Event-Handler (Buttons, onTap, etc.)
+          //    - Beispiel Zeile 35: loadUsers() beim Start
+          //    - Beispiel Zeile 102: Retry-Button → nur Methode aufrufen
+          //
+          //    context.watch<T>():
+          //    - Wie Consumer, aber inline (keine builder-Funktion)
+          //    - Baut Widget NEU bei jeder Änderung
+          //    - Beispiel: final users = context.watch<UserListViewModel>().users;
+          //    - Vorsicht: Baut das GANZE Widget neu (nicht nur Teile)
+          //
+          // Faustregel:
+          // • Consumer → Wenn nur TEIL des Widgets neu gebaut werden soll
+          // • context.watch → Wenn das GANZE Widget neu gebaut werden soll
+          // • context.read → Wenn du nur eine METHODE aufrufen willst
+          //
           // User-Liste
           Expanded(
             child: Consumer<UserListViewModel>(
@@ -126,8 +194,62 @@ class _UserListScreenState extends State<UserListScreen> {
                   );
                 }
 
+                // ═══════════════════════════════════════════════════════════════════════
+                // RefreshIndicator - Pull-to-Refresh
+                // ═══════════════════════════════════════════════════════════════════════
+                //
+                // Was ist das?
+                // • Ein Widget, das "Pull-to-Refresh" ermöglicht
+                // • Benutzer zieht die Liste nach unten → onRefresh wird aufgerufen
+                //
+                // Wie funktioniert es?
+                // 1. Benutzer wischt von oben nach unten
+                // 2. RefreshIndicator zeigt einen Lade-Kreis
+                // 3. onRefresh wird aufgerufen (muss ein Future zurückgeben!)
+                // 4. Wartet bis Future fertig ist
+                // 5. Versteckt den Lade-Kreis
+                //
+                // onRefresh erwartet ein Future:
+                // ✓ onRefresh: () => viewModel.refreshUsers()  (gibt Future zurück)
+                // ✗ onRefresh: () { viewModel.refreshUsers(); } (gibt void zurück)
+                //
                 return RefreshIndicator(
                   onRefresh: () => viewModel.refreshUsers(),
+                  // ═══════════════════════════════════════════════════════════════════════
+                  // ListView.builder vs ListView
+                  // ═══════════════════════════════════════════════════════════════════════
+                  //
+                  // ListView (normale Liste):
+                  // • Erstellt ALLE Widgets sofort
+                  // • Beispiel: ListView(children: [Widget1(), Widget2(), ...])
+                  // • Problem: Bei 1000 Items → 1000 Widgets im Speicher!
+                  // • Nutze nur bei KLEINEN, FESTEN Listen
+                  //
+                  // ListView.builder (lazy/faul):
+                  // • Erstellt Widgets NUR wenn sie SICHTBAR sind
+                  // • Bei 1000 Items aber nur 10 sichtbar → nur 10 Widgets im Speicher
+                  // • itemBuilder wird aufgerufen, wenn Item in Sichtbereich kommt
+                  //
+                  // Wie funktioniert itemBuilder?
+                  // 1. Benutzer scrollt
+                  // 2. Flutter sieht: "Index 5 wird gleich sichtbar"
+                  // 3. Ruft auf: itemBuilder(context, 5)
+                  // 4. itemBuilder gibt das Widget für Index 5 zurück
+                  // 5. Widget wird angezeigt
+                  // 6. Scrollt User weiter weg → Widget wird wieder entfernt
+                  //
+                  // itemCount: Wie viele Items gibt es insgesamt?
+                  // itemBuilder: Funktion die für jeden Index ein Widget erstellt
+                  //
+                  // Performance-Vergleich:
+                  // • 10 Items:    ListView ≈ ListView.builder
+                  // • 100 Items:   ListView.builder ist besser
+                  // • 1000+ Items: ListView.builder ist VIEL besser (50x schneller!)
+                  //
+                  // Faustregel:
+                  // • Dynamische/lange Listen → ListView.builder
+                  // • Kurze, statische Listen (< 10 Items) → ListView
+                  //
                   child: ListView.builder(
                     itemCount: users.length,
                     itemBuilder: (context, index) {
@@ -145,6 +267,34 @@ class _UserListScreenState extends State<UserListScreen> {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// Was bedeutet der Unterstrich '_' vor dem Klassennamen?
+// ═══════════════════════════════════════════════════════════════════════
+//
+// Der Unterstrich macht die Klasse LIBRARY-PRIVATE (file-private)
+//
+// Sichtbarkeit:
+// • _UserListItem → Nur in DIESER Datei (user_list_screen.dart) sichtbar
+// • UserListItem  → In ALLEN Dateien sichtbar (public)
+//
+// Gleiches Prinzip gilt für:
+// • _Variable     → private Variable
+// • _methode()    → private Methode
+// • _ClassName    → private Klasse
+//
+// Warum hier private?
+// ✓ _UserListItem ist nur ein internes Detail von UserListScreen
+// ✓ Andere Dateien brauchen es nicht
+// ✓ Kapselung: Implementierungsdetails verstecken
+//
+// Beispiel:
+// // In user_detail_screen.dart:
+// _UserListItem(user: user);  Fehler! Nicht sichtbar
+//
+// Faustregel:
+// • Wenn Klasse/Variable nur in DIESER Datei gebraucht wird → private (_)
+// • Wenn andere Dateien darauf zugreifen sollen → public (kein _)
+//
 /// Separates Widget für User-ListItem
 /// Demonstriert Widget-Komposition
 class _UserListItem extends StatelessWidget {
@@ -162,7 +312,43 @@ class _UserListItem extends StatelessWidget {
         subtitle: Text(user.email),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: () {
-          // Navigation zu Detail-Screen
+          // ═══════════════════════════════════════════════════════════════════════
+          // Navigation in Flutter - Navigator.push()
+          // ═══════════════════════════════════════════════════════════════════════
+          //
+          // Was macht Navigator.push()?
+          // • Legt eine neue Seite auf den "Navigation Stack"
+          // • Wie ein Stapel Karten: neue Seite kommt oben drauf
+          // • Zurück-Button entfernt oberste Seite vom Stapel
+          //
+          // Navigation Stack Beispiel:
+          // Start:          [HomeScreen]
+          // push(ListScreen): [HomeScreen, ListScreen]
+          // push(DetailScreen): [HomeScreen, ListScreen, DetailScreen]
+          // pop():          [HomeScreen, ListScreen]
+          // pop():          [HomeScreen]
+          //
+          // Was ist MaterialPageRoute?
+          // • Definiert WIE die neue Seite angezeigt wird
+          // • "Material" = Material Design Animationen
+          // • builder: Funktion die das neue Widget erstellt
+          // • Alternative: CupertinoPageRoute (iOS-Style)
+          //
+          // Der builder Parameter:
+          // • Wird aufgerufen wenn die Route gebaut werden muss
+          // • Bekommt neuen BuildContext für die neue Seite
+          // • Gibt das Widget der neuen Seite zurück
+          //
+          // Warum nicht einfach direkt UserDetailScreen()?
+          // • Route verwaltet Animationen (Slide-in/out)
+          // • Route verwaltet Lifecycle (wann bauen, wann entfernen)
+          // • Route verwaltet Zurück-Navigation
+          //
+          // Andere Navigator-Methoden:
+          // • Navigator.pop(context)         → Seite schließen
+          // • Navigator.pushReplacement()    → Seite ersetzen (ohne Zurück)
+          // • Navigator.pushNamed('/detail') → Mit benannten Routes
+          //
           Navigator.push(
             context,
             MaterialPageRoute(
