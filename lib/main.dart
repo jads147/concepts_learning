@@ -17,7 +17,7 @@ import 'views/user_list_screen.dart';
 ///
 /// VORTEILE:
 /// - Zentrale Konfiguration aller Dependencies
-/// - Testbar: Dependencies können ausgetauscht werden
+/// - Testbar: Dependencies können ausgetauscht werden (siehe user_repository.dart)
 /// - Loose Coupling: Komponenten kennen nur ihre direkten Dependencies
 void main() {
   runApp(const MyApp());
