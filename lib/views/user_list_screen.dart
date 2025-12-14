@@ -87,10 +87,6 @@ class _UserListScreenState extends State<UserListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Users (MVVM Demo)'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
       body: Column(
         children: [
           // Suchfeld
@@ -216,39 +212,46 @@ class _UserListScreenState extends State<UserListScreen> {
                 return RefreshIndicator(
                   onRefresh: () => viewModel.refreshUsers(),
                   // ═══════════════════════════════════════════════════════════════════════
-                  // ListView.builder vs ListView
+                  // ListView.builder - LAZY RENDERING (nicht Lazy Data Loading!)
                   // ═══════════════════════════════════════════════════════════════════════
                   //
-                  // ListView (normale Liste):
-                  // • Erstellt ALLE Widgets sofort
-                  // • Beispiel: ListView(children: [Widget1(), Widget2(), ...])
-                  // • Problem: Bei 1000 Items → 1000 Widgets im Speicher!
-                  // • Nutze nur bei KLEINEN, FESTEN Listen
+                  // WICHTIG: Unterscheide zwischen zwei Arten von "Lazy":
                   //
-                  // ListView.builder (lazy/faul):
-                  // • Erstellt Widgets NUR wenn sie SICHTBAR sind
-                  // • Bei 1000 Items aber nur 10 sichtbar → nur 10 Widgets im Speicher
-                  // • itemBuilder wird aufgerufen, wenn Item in Sichtbereich kommt
+                  // 1. LAZY RENDERING (ListView.builder):
+                  //    - Widgets werden nur gebaut, wenn sie SICHTBAR sind
+                  //    - VORAUSSETZUNG: Daten sind BEREITS im Speicher (viewModel.users)
+                  //    - Spart: MEMORY (Widget-Instanzen) & RENDERING-PERFORMANCE
+                  //    - Bei 10 User: Alle Daten da, aber nur ~5 Widgets gleichzeitig
                   //
-                  // Wie funktioniert itemBuilder?
-                  // 1. Benutzer scrollt
-                  // 2. Flutter sieht: "Index 5 wird gleich sichtbar"
-                  // 3. Ruft auf: itemBuilder(context, 5)
-                  // 4. itemBuilder gibt das Widget für Index 5 zurück
-                  // 5. Widget wird angezeigt
-                  // 6. Scrollt User weiter weg → Widget wird wieder entfernt
+                  // 2. LAZY DATA LOADING (siehe PhotoListScreen):
+                  //    - DATEN werden nur bei Bedarf vom Server geladen
+                  //    - Initial: Nur erste 20 Items laden
+                  //    - Beim Scrollen: Nächste 20 Items nachladen (Infinite Scroll)
+                  //    - Spart: NETWORK-TRAFFIC & INITIAL-LOADING-TIME
+                  //    - Bei 5000 Photos: Nicht alle laden, sondern schrittweise!
                   //
-                  // itemCount: Wie viele Items gibt es insgesamt?
-                  // itemBuilder: Funktion die für jeden Index ein Widget erstellt
+                  // DIESE LISTE (Users):
+                  // ✓ Nutzt LAZY RENDERING (ListView.builder)
+                  // ✗ Nutzt KEIN Lazy Data Loading (lädt alle 10 User sofort)
                   //
-                  // Performance-Vergleich:
+                  // Warum kein Lazy Data Loading?
+                  // → Nur 10 User! So wenig Daten brauchen kein Pagination
+                  //
+                  // Zum Vergleich siehe: PhotoListScreen (5000 Photos mit beiden!)
+                  //
+                  // ListView.builder Details:
+                  // • itemCount: Anzahl Items in den BEREITS GELADENEN Daten
+                  // • itemBuilder: Wird NUR für sichtbare Items aufgerufen
+                  // • Scrollt User weg → Widget wird aus Speicher entfernt
+                  // • Scrollt User zurück → itemBuilder wird erneut aufgerufen
+                  //
+                  // Performance (nur Lazy Rendering):
                   // • 10 Items:    ListView ≈ ListView.builder
                   // • 100 Items:   ListView.builder ist besser
-                  // • 1000+ Items: ListView.builder ist VIEL besser (50x schneller!)
+                  // • 1000+ Items: ListView.builder ist essentiell
                   //
-                  // Faustregel:
-                  // • Dynamische/lange Listen → ListView.builder
-                  // • Kurze, statische Listen (< 10 Items) → ListView
+                  // Performance (mit Lazy Data Loading):
+                  // • Siehe PhotoListScreen für echte Optimierung großer Datensätze!
                   //
                   child: ListView.builder(
                     itemCount: users.length,

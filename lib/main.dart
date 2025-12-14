@@ -5,9 +5,13 @@ import 'package:provider/provider.dart';
 import 'services/api_service.dart';
 import 'repositories/user_repository.dart';
 import 'repositories/user_repository_impl.dart';
+import 'repositories/photo_repository.dart';
+import 'repositories/photo_repository_impl.dart';
 import 'viewmodels/user_list_viewmodel.dart';
 import 'viewmodels/user_detail_viewmodel.dart';
+import 'viewmodels/photo_list_viewmodel.dart';
 import 'views/user_list_screen.dart';
+import 'screens/photo_list_screen.dart';
 
 /// Main Entry Point
 ///
@@ -47,6 +51,12 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
+        /// 2b. Repository Layer - Photos
+        /// Separates Repository für Photo-Daten mit Pagination-Support
+        ProxyProvider<ApiService, PhotoRepository>(
+          update: (_, apiService, _) => PhotoRepositoryImpl(apiService),
+        ),
+
         /// 3. ViewModel Layer - User List
         /// ChangeNotifierProxyProvider für reaktive ViewModels
         /// Erstellt UserListViewModel mit UserRepository
@@ -67,6 +77,16 @@ class MyApp extends StatelessWidget {
           update: (_, repository, viewModel) =>
               viewModel ?? UserDetailViewModel(repository: repository),
         ),
+
+        /// 5. ViewModel Layer - Photo List
+        /// ViewModel für große Listen mit LAZY DATA LOADING
+        ChangeNotifierProxyProvider<PhotoRepository, PhotoListViewModel>(
+          create: (context) => PhotoListViewModel(
+            context.read<PhotoRepository>(),
+          ),
+          update: (_, repository, viewModel) =>
+              viewModel ?? PhotoListViewModel(repository),
+        ),
       ],
       child: MaterialApp(
         title: 'Flutter Concepts Learning',
@@ -77,7 +97,57 @@ class MyApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home: const UserListScreen(),
+        home: const MainTabScreen(),
+      ),
+    );
+  }
+}
+
+/// Main Screen mit Tab-Navigation
+///
+/// VERGLEICH DER BEIDEN TABS:
+///
+/// 1. USERS TAB (10 Items):
+///    - Lädt ALLE User auf einmal
+///    - Nutzt nur LAZY RENDERING (ListView.builder)
+///    - Perfekt für kleine Datensätze
+///
+/// 2. PHOTOS TAB (5.000 Items):
+///    - Lädt Photos SCHRITTWEISE (20 pro Scroll)
+///    - Nutzt LAZY RENDERING + LAZY DATA LOADING
+///    - Optimal für große Datensätze
+class MainTabScreen extends StatelessWidget {
+  const MainTabScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        body: Column(
+          children: [
+            Material(
+              color: Theme.of(context).colorScheme.primary,
+              child: TabBar(
+                indicatorColor: Colors.white,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                tabs: const [
+                  Tab(icon: Icon(Icons.people), text: 'Users'),
+                  Tab(icon: Icon(Icons.photo_library), text: 'Photos'),
+                ],
+              ),
+            ),
+            const Expanded(
+              child: TabBarView(
+                children: [
+                  UserListScreen(),
+                  PhotoListScreen(),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
