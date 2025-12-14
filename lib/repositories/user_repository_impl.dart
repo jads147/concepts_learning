@@ -85,9 +85,9 @@ class UserRepositoryImpl implements UserRepository {
       // // MIT !
       // return _cachedUsers!; // ✓ OK: Ich garantiere, es ist nicht null
       //
-      // ⚠️ VORSICHT: Wenn du ! benutzt und es IST doch null → App crasht!
+      // VORSICHT: Wenn du ! benutzt und es IST doch null → App crasht!
       // `List<User>?` users = null;
-      // print(users!.length); // ☠️ CRASH! "Null check operator used on null"
+      // print(users!.length); // CRASH! "Null check operator used on null"
       //
       return _cachedUsers!;
     }
