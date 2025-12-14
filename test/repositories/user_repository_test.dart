@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:concepts_learning/models/user.dart';
-import 'package:concepts_learning/repositories/user_repository.dart';
+import 'package:concepts_learning/repositories/user_repository_impl.dart';
 import 'package:concepts_learning/services/api_service.dart';
 
 import 'user_repository_test.mocks.dart';

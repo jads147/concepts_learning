@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'services/api_service.dart';
 import 'repositories/user_repository.dart';
+import 'repositories/user_repository_impl.dart';
 import 'viewmodels/user_list_viewmodel.dart';
 import 'viewmodels/user_detail_viewmodel.dart';
 import 'views/user_list_screen.dart';

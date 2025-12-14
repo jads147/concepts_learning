@@ -235,6 +235,119 @@ flutter test
 
 ## 📚 Konzepte im Detail
 
+### MVVM vs. Erweiterte Architektur
+
+#### Was ist "pures" MVVM?
+
+MVVM im klassischen Sinne hat nur **3 Schichten**:
+
+```
+┌─────────────────────────┐
+│  View (UI)              │  ← UserListScreen
+└───────────┬─────────────┘
+            │
+┌───────────▼─────────────┐
+│  ViewModel (UI-Logik)   │  ← UserListViewModel
+└───────────┬─────────────┘
+            │
+┌───────────▼─────────────┐
+│  Model (Daten)          │  ← User-Klasse
+└─────────────────────────┘
+```
+
+**Pure MVVM:** ViewModel würde direkt HTTP-Calls machen
+```dart
+// ❌ Pure MVVM (nicht empfohlen für größere Apps)
+class UserListViewModel extends ChangeNotifier {
+  Future<void> loadUsers() async {
+    final response = await http.get('https://api.com/users'); // Direkt im ViewModel!
+    _users = jsonDecode(response.body);
+    notifyListeners();
+  }
+}
+```
+
+#### Dieses Projekt: Erweiterte MVVM-Architektur
+
+Dieses Projekt nutzt eine **erweiterte MVVM-Architektur** mit zusätzlichen Schichten:
+
+```
+┌─────────────────────────────────────┐
+│  View (UI)                          │  ← UserListScreen
+│  - Zeigt Daten an                   │
+│  - Reagiert auf User-Input          │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│  ViewModel (UI-Logik)               │  ← UserListViewModel
+│  - Verwaltet UI-State               │  ✅ Teil von MVVM
+│  - Holt Daten vom Repository        │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│  Repository (Data-Logik)            │  ← UserRepository
+│  - Caching                          │  ⭐ ZUSÄTZLICHE SCHICHT
+│  - Daten kombinieren                │  (Nicht in purem MVVM)
+│  - Business-Logik für Daten         │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│  Service (Externe Daten)            │  ← ApiService
+│  - HTTP-Calls                       │  ⭐ ZUSÄTZLICHE SCHICHT
+│  - Datenbank-Zugriff                │  (Nicht in purem MVVM)
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│  Model (Datenstruktur)              │  ← User-Klasse
+│  - Nur Daten                        │  ✅ Teil von MVVM
+│  - fromJson/toJson                  │
+└─────────────────────────────────────┘
+```
+
+#### Ist "pure MVVM" normal?
+
+**Nein!** In der Praxis nutzen fast alle professionellen Apps erweiterte Architekturen:
+
+| Ansatz | Wann verwendet? | Beispiele |
+|--------|----------------|-----------|
+| **Pure MVVM** | Sehr kleine Apps, Prototypen | Todo-App Demo, einfache Tutorials |
+| **MVVM + Repository** | Kleine bis mittlere Apps | Die meisten Flutter Apps |
+| **MVVM + Repository + Service** | Mittlere bis große Apps |
+| **Clean Architecture** | Sehr große Enterprise Apps | Banking Apps, E-Commerce |
+
+#### Vorteile der erweiterten Architektur
+
+**✅ Vorteile:**
+- **Separation of Concerns**: Jede Schicht hat genau eine Aufgabe
+- **Testbarkeit**: Jede Schicht kann isoliert getestet werden
+- **Austauschbar**: API → lokale DB ohne ViewModel zu ändern
+- **Caching**: An einem Ort (Repository), nicht in jedem ViewModel
+- **Skalierbarkeit**: Einfach neue Features hinzufügen
+- **Team-Arbeit**: Verschiedene Entwickler an verschiedenen Schichten
+
+**❌ Nachteile:**
+- **Mehr Code**: Mehr Dateien, mehr Boilerplate
+- **Komplexität**: Steile Lernkurve für Anfänger
+- **Overhead**: Für kleine Apps übertrieben
+- **Mehr Abstraktion**: Schwieriger zu debuggen
+
+#### Wann welchen Ansatz nutzen?
+
+```dart
+// Kleine App (< 5 Screens):
+View → ViewModel → HTTP (direkt)
+
+// Mittlere App (5-20 Screens):
+View → ViewModel → Repository → HTTP
+                               ↘ Cache
+
+// Große App (20+ Screens):
+View → ViewModel → Repository → Service → HTTP/DB
+                               ↘ Cache
+                               ↘ Offline-Sync
+```
+
+
 ### MVVM (Model-View-ViewModel)
 
 **Vorteile:**
